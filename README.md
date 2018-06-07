@@ -1,0 +1,2 @@
+# xCoin-server
+go
