@@ -120,6 +120,7 @@ class CoinMarcketCap(APIBase):
 
     async def fetch_images(self):
         if not self.if_fetch_images():
+            # 一天只去下载一次，后面又做验证，某个币的图片是否需要重新下
             return
 
         url = 'https://coinmarketcap.com/%s'
@@ -139,6 +140,10 @@ class CoinMarcketCap(APIBase):
                 tds = tr.find_all('td')
                 image = tds[1].find_all('img')[0]
                 name = tds[1]['data-sort']
+
+                if self.sa_img_dict.get('%s_%s' % (symbol, name)):
+                    # already downloaded image, just continue
+                    continue
 
                 img_url = image['src']
                 if 'coinmarketcap' not in img_url:
