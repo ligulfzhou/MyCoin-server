@@ -22,12 +22,14 @@ type Coin struct {
 	OneDayVolumnUsd      string `json:"one_day_volumn_usd"`
 	AvailableSupply      string `json:"available_supply"`
 	TotalSupply          string `json:"total_supply"`
+	ImgUrl               string `json:"img_url"`
 }
 
 type TCoin struct {
 	Id     int    `json:"id" sql:"AUTO_INCREMENT" gorm:"primary_key"`
 	Symbol string `json:"symbol"`
 	Name   string `json:"name"`
+	ImgUrl string `json:"img_url"`
 }
 
 func (c *TCoin) TableName() string {
