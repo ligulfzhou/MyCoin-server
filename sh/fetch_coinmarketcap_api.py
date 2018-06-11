@@ -19,7 +19,7 @@ class APIBase:
         html = False
         async with self.sem:
             async with aiohttp.ClientSession(loop=self.loop) as session:
-                if kwargs.get('html', True):
+                if kwargs.get('html', False):
                     del kwargs['html']
                     html = True
 
@@ -35,7 +35,7 @@ class CoinMarcketCap(APIBase):
         super(CoinMarcketCap, self).__init__(loop)
         self.rs = redis.StrictRedis(host='127.0.0.1')
         self.db = MySQLdb.connect(db='xcoin', passwd='MYSQLzhouligang153', user='root', host='127.0.0.1')
-        self.sa_img_dict = {}
+        self.fetch_sa_img()
 
     def get_coin_range_key(self):
         return 'coins'
@@ -58,11 +58,18 @@ class CoinMarcketCap(APIBase):
         key = 'coins_exists_key'
         self.rs.sadd(key, *pairs)
 
+    def fetch_sa_img(self):
+        c = self.db.cursor()
+        c.execute('select symbol, name, img_url from coin;')
+        rows = c.fetchall()
+        d = {'%s_%s' % (symbol, name): img_url for symbol, name, img_url in rows}
+        self.sa_img_dict = d
+        print(self.sa_img_dict)
+
     def update_coin_img_url(self, symbol, name, img_url):
         c = self.db.cursor()
         sql = 'update coin set img_url = "{img_url}" where symbol="{symbol}" and name = "{name}"'.format(img_url=img_url, symbol=symbol, name=name)
         rows = c.execute(sql)
-        print(rows, type(rows))
         if not rows:
             print(symbol, name, img_url)
 
@@ -87,7 +94,7 @@ class CoinMarcketCap(APIBase):
         for coin in coins:
             try:
                 c = self.db.cursor()
-                c.execute('insert into coin (name, symbol) values ("%s", "%s")' % (coin['name'], coin['symbol']))
+                c.execute('insert into coin (name, symbol, img_url) values ("%s", "%s", "%s")' % (coin['name'], coin['symbol'], coin["img_url"]))
                 self.db.commit()
             except Exception as e:
                 print(e)
@@ -110,7 +117,8 @@ class CoinMarcketCap(APIBase):
             coin.update({
                 'percent_change_one_day': coin['percent_change_24h'] or '',
                 'percent_change_one_hour': coin['percent_change_1h'] or '',
-                'percent_change_one_week': coin['percent_change_7d'] or ''
+                'percent_change_one_week': coin['percent_change_7d'] or '',
+                'img_url': self.sa_img_dict.get('%s_%s' % (coin['symbol'], coin['name']))
             })
             for i in ('percent_change_24h', 'percent_change_1h', 'percent_change_7d'):
                 del coin[i]
